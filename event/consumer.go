@@ -36,7 +36,7 @@ func (c *CourseListEventConsumer) Start() error {
 }
 
 func (c *CourseListEventConsumer) BatchConsume(msgs []*sarama.ConsumerMessage, events []CourseListEvent) error {
-	courses := make([]domain.FailOverCourse, 0, 100)
+	courses := make([]domain.FailoverCourse, 0, 100)
 	for _, event := range events {
 		courses = slice.UnionSet(courses, event.Courses)
 	}

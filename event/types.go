@@ -3,7 +3,7 @@ package event
 import "github.com/MuxiKeStack/be-course/domain"
 
 type CourseListEvent struct {
-	Courses []domain.FailOverCourse
+	Courses []domain.FailoverCourse
 }
 
 func (e *CourseListEvent) Topic() string {

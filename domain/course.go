@@ -1,6 +1,6 @@
 package domain
 
-type FailOverCourse struct {
+type FailoverCourse struct {
 	Id        int64  `json:"id"`
 	StudentId string `json:"student_id"`
 	CourseId  string `json:"course_id"`

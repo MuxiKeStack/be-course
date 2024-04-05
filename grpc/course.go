@@ -16,13 +16,13 @@ type CourseServiceServer struct {
 func (s *CourseServiceServer) List(ctx context.Context, request *coursev1.ListRequest) (*coursev1.ListResponse, error) {
 	cs, err := s.svc.List(ctx, request.GetStudentId(), request.GetPassword(), request.GetYear(), request.GetTerm())
 	return &coursev1.ListResponse{
-		Courses: slice.Map(cs, func(idx int, src domain.FailOverCourse) *coursev1.Course {
+		Courses: slice.Map(cs, func(idx int, src domain.FailoverCourse) *coursev1.Course {
 			return convertToV(src)
 		}),
 	}, err
 }
 
-func convertToV(user domain.FailOverCourse) *coursev1.Course {
+func convertToV(user domain.FailoverCourse) *coursev1.Course {
 	return &coursev1.Course{
 		CourseId: user.CourseId,
 		Name:     user.Name,

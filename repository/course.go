@@ -8,30 +8,30 @@ import (
 )
 
 type CourseRepository interface {
-	BatchCreate(ctx context.Context, courses []domain.FailOverCourse) error
-	FindByStudentIdYearTerm(ctx context.Context, studentId string, year string, term string) ([]domain.FailOverCourse, error)
+	BatchCreate(ctx context.Context, courses []domain.FailoverCourse) error
+	FindByStudentIdYearTerm(ctx context.Context, studentId string, year string, term string) ([]domain.FailoverCourse, error)
 }
 
 type CachedCourseRepository struct {
 	dao dao.CourseDAO
 }
 
-func (repo *CachedCourseRepository) BatchCreate(ctx context.Context, courses []domain.FailOverCourse) error {
-	return repo.dao.BatchInsert(ctx, slice.Map(courses, func(idx int, src domain.FailOverCourse) dao.FailOverCourse {
+func (repo *CachedCourseRepository) BatchCreate(ctx context.Context, courses []domain.FailoverCourse) error {
+	return repo.dao.BatchInsert(ctx, slice.Map(courses, func(idx int, src domain.FailoverCourse) dao.FailoverCourse {
 		return repo.toEntity(src)
 	}))
 }
 
 func (repo *CachedCourseRepository) FindByStudentIdYearTerm(ctx context.Context, studentId string,
-	year string, term string) ([]domain.FailOverCourse, error) {
+	year string, term string) ([]domain.FailoverCourse, error) {
 	fcs, err := repo.dao.FindByStudentIdYearTerm(ctx, studentId, year, term)
-	return slice.Map(fcs, func(idx int, src dao.FailOverCourse) domain.FailOverCourse {
+	return slice.Map(fcs, func(idx int, src dao.FailoverCourse) domain.FailoverCourse {
 		return repo.toDomain(src)
 	}), err
 }
 
-func (repo *CachedCourseRepository) toEntity(course domain.FailOverCourse) dao.FailOverCourse {
-	return dao.FailOverCourse{
+func (repo *CachedCourseRepository) toEntity(course domain.FailoverCourse) dao.FailoverCourse {
+	return dao.FailoverCourse{
 		Id:        course.Id,
 		StudentId: course.StudentId,
 		Year:      course.Year,
@@ -42,8 +42,8 @@ func (repo *CachedCourseRepository) toEntity(course domain.FailOverCourse) dao.F
 	}
 }
 
-func (repo *CachedCourseRepository) toDomain(course dao.FailOverCourse) domain.FailOverCourse {
-	return domain.FailOverCourse{
+func (repo *CachedCourseRepository) toDomain(course dao.FailoverCourse) domain.FailoverCourse {
+	return domain.FailoverCourse{
 		Id:        course.Id,
 		StudentId: course.StudentId,
 		CourseId:  course.CourseId,

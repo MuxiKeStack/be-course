@@ -8,15 +8,15 @@ import (
 )
 
 type CourseDAO interface {
-	BatchInsert(ctx context.Context, courses []FailOverCourse) error
-	FindByStudentIdYearTerm(ctx context.Context, studentId string, year string, term string) ([]FailOverCourse, error)
+	BatchInsert(ctx context.Context, courses []FailoverCourse) error
+	FindByStudentIdYearTerm(ctx context.Context, studentId string, year string, term string) ([]FailoverCourse, error)
 }
 
 type GORMCourseDAO struct {
 	db *gorm.DB
 }
 
-func (dao *GORMCourseDAO) BatchInsert(ctx context.Context, courses []FailOverCourse) error {
+func (dao *GORMCourseDAO) BatchInsert(ctx context.Context, courses []FailoverCourse) error {
 	now := time.Now().UnixMilli()
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var err error
@@ -36,15 +36,15 @@ func (dao *GORMCourseDAO) BatchInsert(ctx context.Context, courses []FailOverCou
 	})
 }
 
-func (dao *GORMCourseDAO) FindByStudentIdYearTerm(ctx context.Context, studentId string, year string, term string) ([]FailOverCourse, error) {
-	var fcs []FailOverCourse
+func (dao *GORMCourseDAO) FindByStudentIdYearTerm(ctx context.Context, studentId string, year string, term string) ([]FailoverCourse, error) {
+	var fcs []FailoverCourse
 	err := dao.db.WithContext(ctx).
 		Where("student_id = ? and year = ? and term = ?", studentId, year, term).
 		Find(&fcs).Error
 	return fcs, err
 }
 
-type FailOverCourse struct {
+type FailoverCourse struct {
 	Id        int64  `gorm:"primaryKey,autoIncrement"`
 	StudentId string `gorm:"index:sid_year_term;uniqueIndex:sid_cid_name_teacher"`
 	Year      string `gorm:"index:sid_year_term"` // 冗余这两个字段便于查询
