@@ -1,11 +1,12 @@
 package event
 
-import "github.com/MuxiKeStack/be-course/domain"
-
-type CourseListEvent struct {
-	Courses []domain.FailoverCourse
+type CourseFromXkEvent struct {
+	CourseId int64
+	Uid      int64
+	Year     string
+	Term     string
 }
 
-func (e *CourseListEvent) Topic() string {
+func (e *CourseFromXkEvent) Topic() string {
 	return "course_list_events"
 }

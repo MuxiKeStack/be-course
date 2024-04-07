@@ -2,56 +2,108 @@ package dao
 
 import (
 	"context"
+	"errors"
+	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"time"
 )
 
+var (
+	ErrRecordNorFound  = gorm.ErrRecordNotFound
+	ErrCourseDuplicate = errors.New("课程创建冲突")
+)
+
 type CourseDAO interface {
-	BatchInsert(ctx context.Context, courses []FailoverCourse) error
-	FindByStudentIdYearTerm(ctx context.Context, studentId string, year string, term string) ([]FailoverCourse, error)
+	FindGradesById(ctx context.Context, id int64) ([]Grade, error)
+	FindById(ctx context.Context, id int64) (Course, error)
+	FindByIds(ctx context.Context, cids []int64) ([]Course, error)
+	FindIdByCourse(ctx context.Context, course Course) (int64, error)
+	Insert(ctx context.Context, course Course) error
+	// BatchUpsert 这个实际上并未被上层的repository使用，而是被导入课程的脚本所使用的
+	// 理论上每一个数据库只能由其微服务来调用，不能跨过服务直接调其数据库
+	// 但这里调用方是一个本地手动执行的脚本不是一个微服务，从实用性和效率上讲就这样写了
+	BatchUpsert(ctx context.Context, courses []Course) error
 }
 
 type GORMCourseDAO struct {
 	db *gorm.DB
 }
 
-func (dao *GORMCourseDAO) BatchInsert(ctx context.Context, courses []FailoverCourse) error {
+func (dao *GORMCourseDAO) FindIdByCourse(ctx context.Context, course Course) (int64, error) {
+	var id int64
+	err := dao.db.WithContext(ctx).Model(&Course{}).
+		Select("id").
+		Where("course_code = ? and name = ? and teacher = ?", course.CourseCode, course.Name, course.Teacher).
+		First(&id).Error
+	return id, err
+}
+
+func (dao *GORMCourseDAO) Insert(ctx context.Context, course Course) error {
+	return dao.db.WithContext(ctx).Create(&course).Error
+}
+
+func (dao *GORMCourseDAO) FindByIds(ctx context.Context, cids []int64) ([]Course, error) {
+	var courses []Course
+	err := dao.db.WithContext(ctx).
+		Where("id in ?", cids).
+		Find(&courses).Error
+	return courses, err
+}
+
+func (dao *GORMCourseDAO) FindGradesById(ctx context.Context, id int64) ([]Grade, error) {
+	var grades []Grade
+	err := dao.db.WithContext(ctx).
+		Where("course_id = ?", id).
+		Find(&grades).Error
+	return grades, err
+}
+
+func (dao *GORMCourseDAO) FindById(ctx context.Context, id int64) (Course, error) {
+	var c Course
+	err := dao.db.WithContext(ctx).
+		Where("id = ?", id).
+		First(&c).Error
+	return c, err
+}
+
+func (dao *GORMCourseDAO) BatchUpsert(ctx context.Context, courses []Course) error {
 	now := time.Now().UnixMilli()
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var err error
+		var eg errgroup.Group
 		for _, c := range courses {
-			// upsert 语义，其实这里世界create也可以，但是可能未来会对更新时间有要求
-			// 比如非课程变动期判断utime足够新就不去ccnu.xk查询了
-			err = tx.Clauses(
-				clause.OnConflict{DoUpdates: clause.Assignments(map[string]any{
+			eg.Go(func() error {
+				return tx.Clauses(clause.OnConflict{DoUpdates: clause.Assignments(map[string]any{
 					"utime": now,
-				})},
-			).Create(&c).Error
-			if err != nil {
-				return err
-			}
+				})}).Create(&c).Error
+			})
 		}
-		return nil
+		return eg.Wait()
 	})
 }
 
-func (dao *GORMCourseDAO) FindByStudentIdYearTerm(ctx context.Context, studentId string, year string, term string) ([]FailoverCourse, error) {
-	var fcs []FailoverCourse
-	err := dao.db.WithContext(ctx).
-		Where("student_id = ? and year = ? and term = ?", studentId, year, term).
-		Find(&fcs).Error
-	return fcs, err
+type Course struct {
+	Id int64 `gorm:"primaryKey,autoIncrement"`
+	// 在数据库层面上，其他表的Cid都指上面主键Id
+	CourseCode string `gorm:"uniqueIndex:courseCode_name_teacher"`
+	Name       string `gorm:"uniqueIndex:courseCode_name_teacher"`
+	Teacher    string `gorm:"uniqueIndex:courseCode_name_teacher"`
+	School     string
+	Property   uint8 // 冗余字段CourseCode就包含类课程性质
+	Credit     float32
+	Ctime      int64
+	Utime      int64 // 作用可以用来判断这个课这学期是不是有
 }
 
-type FailoverCourse struct {
-	Id        int64  `gorm:"primaryKey,autoIncrement"`
-	StudentId string `gorm:"index:sid_year_term;uniqueIndex:sid_cid_name_teacher"`
-	Year      string `gorm:"index:sid_year_term"` // 冗余这两个字段便于查询
-	Term      string `gorm:"index:sid_year_term"` //
-	CourseId  string `gorm:"uniqueIndex:sid_cid_name_teacher"`
-	Name      string `gorm:"uniqueIndex:sid_cid_name_teacher"`
-	Teacher   string `gorm:"uniqueIndex:sid_cid_name_teacher"`
-	Ctime     int64
-	Utime     int64
+type Grade struct {
+	Id       int64 `gorm:"primaryKey,autoIncrement"`
+	CourseId int64 `gorm:"uniqueIndex:cid_uid"` // 主键id
+	Uid      int64 `gorm:"uniqueIndex:cid_uid"`
+	Regular  float32
+	Final    float32
+	Total    float32
+	Year     string
+	Term     string
+	Utime    int64
+	Ctime    int64
 }

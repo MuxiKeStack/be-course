@@ -7,7 +7,7 @@ import (
 )
 
 type Producer interface {
-	ProduceCourseListEvent(ctx context.Context, evt CourseListEvent) error
+	ProduceCourseListEvent(ctx context.Context, evt CourseFromXkEvent) error
 }
 
 type SaramaProducer struct {
@@ -24,7 +24,7 @@ func NewSaramaProducer(client sarama.Client) (*SaramaProducer, error) {
 	}, nil
 }
 
-func (s *SaramaProducer) ProduceCourseListEvent(ctx context.Context, evt CourseListEvent) error {
+func (s *SaramaProducer) ProduceCourseListEvent(ctx context.Context, evt CourseFromXkEvent) error {
 	data, err := json.Marshal(evt)
 	if err != nil {
 		return err
