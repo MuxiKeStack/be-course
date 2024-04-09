@@ -3,5 +3,8 @@ package dao
 import "gorm.io/gorm"
 
 func InitTables(db *gorm.DB) error {
-	return db.AutoMigrate(&Course{}, &CourseSubscription{})
+	return db.AutoMigrate(
+		&Course{},
+		&CourseSubscription{},
+		&Grade{})
 }
