@@ -24,10 +24,29 @@ type CourseDAO interface {
 	// 理论上每一个数据库只能由其微服务来调用，不能跨过服务直接调其数据库
 	// 但这里调用方是一个本地手动执行的脚本不是一个微服务，从实用性和效率上讲就这样写了
 	BatchUpsert(ctx context.Context, courses []Course) error
+	Upsert(ctx context.Context, course Course) error
+	FindIdByCourseWithoutUnknownProperty(ctx context.Context, course Course) (int64, error)
 }
 
 type GORMCourseDAO struct {
 	db *gorm.DB
+}
+
+func NewGORMCourseDAO(db *gorm.DB) CourseDAO {
+	return &GORMCourseDAO{db: db}
+}
+
+func (dao *GORMCourseDAO) Upsert(ctx context.Context, course Course) error {
+	now := time.Now().UnixMilli()
+	course.Utime = now
+	course.Ctime = now
+	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return tx.Clauses(
+			clause.OnConflict{DoUpdates: clause.Assignments(map[string]any{
+				"property": course.Property,
+				"utime":    now,
+			})}).Create(&course).Error
+	})
 }
 
 func (dao *GORMCourseDAO) FindIdByCourse(ctx context.Context, course Course) (int64, error) {
@@ -39,7 +58,21 @@ func (dao *GORMCourseDAO) FindIdByCourse(ctx context.Context, course Course) (in
 	return id, err
 }
 
+func (dao *GORMCourseDAO) FindIdByCourseWithoutUnknownProperty(ctx context.Context, course Course) (int64, error) {
+	var id int64
+	const CoursePropertyUnknown = 0
+	err := dao.db.WithContext(ctx).Model(&Course{}).
+		Select("id").
+		Where("course_code = ? and name = ? and teacher = ? and property != ?",
+			course.CourseCode, course.Name, course.Teacher, CoursePropertyUnknown).
+		First(&id).Error
+	return id, err
+}
+
 func (dao *GORMCourseDAO) Insert(ctx context.Context, course Course) error {
+	now := time.Now().UnixMilli()
+	course.Ctime = now
+	course.Utime = now
 	return dao.db.WithContext(ctx).Create(&course).Error
 }
 
@@ -72,6 +105,8 @@ func (dao *GORMCourseDAO) BatchUpsert(ctx context.Context, courses []Course) err
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var eg errgroup.Group
 		for _, c := range courses {
+			c.Ctime = now
+			c.Utime = now
 			eg.Go(func() error {
 				return tx.Clauses(clause.OnConflict{DoUpdates: clause.Assignments(map[string]any{
 					"utime": now,
@@ -84,20 +119,20 @@ func (dao *GORMCourseDAO) BatchUpsert(ctx context.Context, courses []Course) err
 
 type Course struct {
 	Id int64 `gorm:"primaryKey,autoIncrement"`
-	// 在数据库层面上，其他表的Cid都指上面主键Id
-	CourseCode string `gorm:"uniqueIndex:courseCode_name_teacher"`
-	Name       string `gorm:"uniqueIndex:courseCode_name_teacher"`
-	Teacher    string `gorm:"uniqueIndex:courseCode_name_teacher"`
+	// 这里是否有必要为property建立一个包含四个字段的联合索引
+	CourseCode string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:char(8)"`
+	Name       string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:varchar(30)"`
+	Teacher    string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:varchar(10)"`
+	Property   uint8  `gorm:"index:idx_code_name_teacher_property"`
 	School     string
-	Property   uint8 // 冗余字段CourseCode就包含类课程性质
 	Credit     float32
 	Ctime      int64
-	Utime      int64 // 作用可以用来判断这个课这学期是不是有
+	Utime      int64
 }
 
 type Grade struct {
 	Id       int64 `gorm:"primaryKey,autoIncrement"`
-	CourseId int64 `gorm:"uniqueIndex:cid_uid"` // 主键id
+	CourseId int64 `gorm:"uniqueIndex:cid_uid;"` // 主键id
 	Uid      int64 `gorm:"uniqueIndex:cid_uid"`
 	Regular  float32
 	Final    float32
