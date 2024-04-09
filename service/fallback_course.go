@@ -15,7 +15,7 @@ var (
 	ErrUidNotInput             = errors.New("用户id未传入")
 )
 
-// FallbackCourseService 故障转移装饰层
+// FallbackCourseService 降级装饰层
 type FallbackCourseService struct {
 	CourseService
 	repo     repository.CourseRepository
@@ -23,7 +23,13 @@ type FallbackCourseService struct {
 	l        logger.Logger
 }
 
+func NewFallbackCourseService(courseService CourseService, repo repository.CourseRepository,
+	producer event.Producer, l logger.Logger) CourseService {
+	return &FallbackCourseService{CourseService: courseService, repo: repo, producer: producer, l: l}
+}
+
 func (f *FallbackCourseService) List(ctx context.Context, studentId string, password string, year string, term string, uid ...int64) ([]domain.Course, error) {
+	// 这里为了降级，加一个装饰器
 	if len(uid) == 0 {
 		return nil, ErrUidNotInput
 	}
