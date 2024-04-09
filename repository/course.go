@@ -3,8 +3,10 @@ package repository
 import (
 	"context"
 	"github.com/MuxiKeStack/be-course/domain"
+	"github.com/MuxiKeStack/be-course/repository/cache"
 	"github.com/MuxiKeStack/be-course/repository/dao"
 	"github.com/ecodeclub/ekit/slice"
+	"time"
 )
 
 var (
@@ -18,15 +20,35 @@ type CourseRepository interface {
 	FindByUidYearTerm(ctx context.Context, uid int64, year string, term string) ([]domain.Course, error)
 	FindIdByCourse(ctx context.Context, course domain.Course) (int64, error)
 	Create(ctx context.Context, course domain.Course) error
+	Upsert(ctx context.Context, course domain.Course) error
+	FindByUidYearTermAlive(ctx context.Context, uid int64, year string, term string, TTL time.Duration) ([]domain.Course, error)
+	FindIdByCourseWithoutUnknownProperty(ctx context.Context, course domain.Course) (int64, error)
 }
 
 type CachedCourseRepository struct {
 	dao     dao.CourseDAO
 	subRepo CourseSubscriptionRepository
+	cache   cache.CourseCache
+}
+
+func NewCachedCourseRepository(dao dao.CourseDAO, subRepo CourseSubscriptionRepository, cache cache.CourseCache) CourseRepository {
+	return &CachedCourseRepository{dao: dao, subRepo: subRepo, cache: cache}
+}
+
+func (repo *CachedCourseRepository) Upsert(ctx context.Context, course domain.Course) error {
+	return repo.dao.Upsert(ctx, repo.courseToEntity(course))
 }
 
 func (repo *CachedCourseRepository) FindIdByCourse(ctx context.Context, course domain.Course) (int64, error) {
+	// 这里考虑到一个课程，就算缓存了id，只有上过这门课的学生会调这个接口
+	// 对于一门课，在校生里面最多几百人，比如一门通核8、90人，教了三届，也就不到300人
+	// 而且大多数还是人更少的专业课，假设用户量能有在校生三分之一，缓存半小时的话，半小时能有几个人命中这个缓存
+	// 缓存了收益很低，更何况，查询条件完全命中索引，所以不缓存了
 	return repo.dao.FindIdByCourse(ctx, repo.courseToEntity(course))
+}
+
+func (repo *CachedCourseRepository) FindIdByCourseWithoutUnknownProperty(ctx context.Context, course domain.Course) (int64, error) {
+	return repo.dao.FindIdByCourseWithoutUnknownProperty(ctx, repo.courseToEntity(course))
 }
 
 func (repo *CachedCourseRepository) Create(ctx context.Context, course domain.Course) error {
@@ -45,12 +67,38 @@ func (repo *CachedCourseRepository) FindByUidYearTerm(ctx context.Context, uid i
 	}), err
 }
 
+// FindByUidYearTermAlive 最近ttl时间内的数据
+func (repo *CachedCourseRepository) FindByUidYearTermAlive(ctx context.Context, uid int64, year string, term string,
+	TTL time.Duration) ([]domain.Course, error) {
+	// 不使用join语句，分步：先拿到courseIds
+	cids, err := repo.subRepo.FindCourseIdsByUidYearTermAlive(ctx, uid, year, term, TTL)
+	if err != nil {
+		return nil, err
+	}
+	cs, err := repo.dao.FindByIds(ctx, cids)
+	return slice.Map(cs, func(idx int, src dao.Course) domain.Course {
+		return repo.courseToDomain(src)
+	}), err
+}
+
 func (repo *CachedCourseRepository) FindById(ctx context.Context, id int64) (domain.Course, error) {
+	// 先查缓存，新发的课评会预热相关课程
+	res, err := repo.cache.Get(ctx, id)
+	if err == nil {
+		return res, nil
+	}
+	// 1. 没有key
+	// 2. redis崩溃，这里预期没有缓存也撑得住，不采取降级来保护数据库
 	c, err := repo.dao.FindById(ctx, id)
 	return repo.courseToDomain(c), err
 }
 
 func (repo *CachedCourseRepository) FindGradesById(ctx context.Context, id int64) ([]domain.Grade, error) {
+	// 先查缓存，新发的课评会预热相关课程
+	res, err := repo.cache.GetGrades(ctx, id)
+	if err == nil {
+		return res, nil
+	}
 	gs, err := repo.dao.FindGradesById(ctx, id)
 	return slice.Map(gs, func(idx int, src dao.Grade) domain.Grade {
 		return repo.gradeToDomain(src)
