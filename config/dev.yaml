@@ -1,0 +1,31 @@
+mysql:
+  dsn: "root:root@tcp(localhost:3306)/kstack"
+
+redis:
+  addr: "localhost:6379"
+
+etcd:
+  endpoints:
+    - "localhost:12379"
+
+grpc:
+  server:
+    name: "course"
+    weight: 100
+    addr: ":8093"
+    etcdTTL: 60
+  client:
+    ccnu:
+      endpoint: "discovery:///ccnu"
+      retryCnt: 3    # 具备重试装饰时的重试次数
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+current:
+  year: 2024
+  term: 1
+  course:
+    selecting: false # 是否处于选课期间
+    TTL: 1  # 单位: 天
