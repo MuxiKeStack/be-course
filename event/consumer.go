@@ -17,6 +17,11 @@ type CourseListEventConsumer struct {
 	repo   repository.CourseSubscriptionRepository
 }
 
+func NewCourseListEventConsumer(client sarama.Client, l logger.Logger,
+	repo repository.CourseSubscriptionRepository) *CourseListEventConsumer {
+	return &CourseListEventConsumer{client: client, l: l, repo: repo}
+}
+
 // Start 这边就是自己启动 goroutine 了
 func (c *CourseListEventConsumer) Start() error {
 	cg, err := sarama.NewConsumerGroupFromClient("store",
