@@ -27,31 +27,50 @@ type Grade struct {
 
 type CourseProperty uint8
 
-// TODO 接下来在这里做好类型的转换，外部不需要修改
-func (p CourseProperty) String() string {
-	return ""
-}
+const (
+	CoursePropertyUnknown         CourseProperty = iota
+	CoursePropertyGeneralCore                    // 通识核心课
+	CoursePropertyGeneralElective                // 通识选修课
+	CoursePropertyGeneralRequired                // 通识必修课
+	CoursePropertyMajorCore                      // 专业主干课程
+	CoursePropertyMajorElective                  // 个性发展课程
+)
 
 func (p CourseProperty) Uint8() uint8 {
-	return 0
+	return uint8(p)
 }
 
-const (
-	CoursePropertyUnknown CourseProperty = 0 + iota
-)
+func (p CourseProperty) String() string {
+	switch p {
+	case CoursePropertyGeneralCore:
+		return "通识核心课"
+	case CoursePropertyGeneralElective:
+		return "通识选修课"
+	case CoursePropertyGeneralRequired:
+		return "通识必修课"
+	case CoursePropertyMajorCore:
+		return "专业主干课程"
+	case CoursePropertyMajorElective:
+		return "个性发展课程"
+	default:
+		return "Unknown Course Property"
+	}
+}
 
 // CoursePropertyFromStr 将外部调用(ccnu调用)获取到的字符串课程转换为uint8
 func CoursePropertyFromStr(pStr string) CourseProperty {
-	return CoursePropertyUnknown
-	// TODO 课程性质转换
-	//switch pStr {
-	//case "通识核心课":
-	//	return
-	//case :
-	//
-	//case "通识必修课":
-	//case "专业主干课":
-	//case "个性发发展课":
-	//case "通识核心选修课":
-	//}
+	switch pStr {
+	case "通识核心课":
+		return CoursePropertyGeneralCore
+	case "通识选修课":
+		return CoursePropertyGeneralElective
+	case "通识必修课":
+		return CoursePropertyGeneralRequired
+	case "专业主干课程":
+		return CoursePropertyMajorCore
+	case "个性发展课程":
+		return CoursePropertyMajorElective
+	default:
+		return CoursePropertyUnknown
+	}
 }
