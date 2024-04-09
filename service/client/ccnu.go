@@ -11,6 +11,10 @@ type RetryCCNUClient struct {
 	retryCnt int
 }
 
+func NewRetryCCNUClient(CCNUServiceClient ccnuv1.CCNUServiceClient, retryCnt int) *RetryCCNUClient {
+	return &RetryCCNUClient{CCNUServiceClient: CCNUServiceClient, retryCnt: retryCnt}
+}
+
 func (r *RetryCCNUClient) CourseList(ctx context.Context, in *ccnuv1.CourseListRequest, opts ...grpc.CallOption) (*ccnuv1.CourseListResponse, error) {
 	var (
 		res *ccnuv1.CourseListResponse
