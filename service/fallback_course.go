@@ -28,36 +28,39 @@ func NewFallbackCourseService(courseService CourseService, repo repository.Cours
 	return &FallbackCourseService{CourseService: courseService, repo: repo, producer: producer, l: l}
 }
 
-func (f *FallbackCourseService) List(ctx context.Context, studentId string, password string, year string, term string, uid ...int64) ([]domain.Course, error) {
+func (f *FallbackCourseService) SubscriptionList(ctx context.Context, studentId string, password string, year string,
+	term string, uid ...int64) ([]domain.CourseSubscription, error) {
 	// 这里为了降级，加一个装饰器
 	if len(uid) == 0 {
 		return nil, ErrUidNotInput
 	}
-	courses, err := f.CourseService.List(ctx, studentId, password, year, term)
+	courseSubscriptions, err := f.CourseService.SubscriptionList(ctx, studentId, password, year, term)
 	switch {
 	case err == nil:
 		// 开kafka异步存入数据库
-		for _, c := range courses {
-			er := f.producer.ProduceCourseListEvent(context.Background(), event.CourseFromXkEvent{
-				CourseId: c.Id,
+		events := make([]event.CourseFromXkEvent, 0, len(courseSubscriptions))
+		for _, c := range courseSubscriptions {
+			events = append(events, event.CourseFromXkEvent{
+				CourseId: c.Course.Id,
 				Uid:      uid[0],
-				Year:     year,
-				Term:     term,
+				Year:     c.Year,
+				Term:     c.Term,
 			})
-			if er != nil {
-				f.l.Error("生产CourseListEvent失败", logger.Error(err), logger.String("studentId", studentId))
-			}
+		}
+		er := f.producer.BatchProduceCourseListEvent(ctx, events)
+		if er != nil {
+			f.l.Error("生产CourseListEvent失败", logger.Error(err), logger.String("studentId", studentId))
 		}
 	case ccnuv1.IsNetworkToXkError(err):
 		// 降级,从数据查旧的数据，没查到就直接返回
 		var er error
-		courses, er = f.repo.FindByUidYearTerm(ctx, uid[0], year, term)
+		courseSubscriptions, er = f.CourseService.FindSubscriptionsByUidYearTermAlive(ctx, uid[0], year, term, -1)
 		if er != nil {
 			return nil, er
 		}
-		if len(courses) == 0 {
+		if len(courseSubscriptions) == 0 {
 			return nil, ErrDownGradeCourseNotFound
 		}
 	}
-	return courses, err
+	return courseSubscriptions, err
 }

@@ -1,10 +1,10 @@
 package domain
 
 type CourseSubscription struct {
-	CourseId int64
-	Uid      int64
-	Year     string
-	Term     string
+	Course Course
+	Uid    int64
+	Year   string
+	Term   string
 }
 
 type Course struct {
@@ -15,6 +15,7 @@ type Course struct {
 	School     string
 	Property   CourseProperty
 	Credit     float32
+	Grades     []Grade
 }
 
 type Grade struct {

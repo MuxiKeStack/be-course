@@ -24,8 +24,8 @@ kafka:
     - "localhost:9094"
 
 current:
-  year: 2024
-  term: 1
+  year: 2023
+  term: 2
   course:
     selecting: false # 是否处于选课期间
     TTL: 1  # 单位: 天

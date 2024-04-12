@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-func InitFallBackCourseService(ccnu ccnuv1.CCNUServiceClient, repo repository.CourseRepository, producer event.Producer, l logger.Logger) service.CourseService {
+func InitFallBackCourseService(ccnu ccnuv1.CCNUServiceClient, repo repository.CourseRepository,
+	producer event.Producer, l logger.Logger, subRepo repository.CourseSubscriptionRepository) service.CourseService {
 	type Config struct {
 		Year   string `yaml:"year"`
 		Term   string `yaml:"term"`
@@ -24,12 +25,13 @@ func InitFallBackCourseService(ccnu ccnuv1.CCNUServiceClient, repo repository.Co
 	if err != nil {
 		panic(err)
 	}
-	courseService := service.NewCourseService(ccnu, repo, cfg.Year, cfg.Term)
+	courseService := service.NewCourseService(ccnu, repo, subRepo, cfg.Year, cfg.Term)
 	fc := service.NewFallbackCourseService(courseService, repo, producer, l)
 	return fc
 }
 
-func InitPerformanceFallBackCourseService(ccnu ccnuv1.CCNUServiceClient, repo repository.CourseRepository, producer event.Producer, l logger.Logger) service.CourseService {
+func InitPerformanceFallBackCourseService(ccnu ccnuv1.CCNUServiceClient, repo repository.CourseRepository,
+	producer event.Producer, l logger.Logger, subRepo repository.CourseSubscriptionRepository) service.CourseService {
 	type Config struct {
 		Year   string `yaml:"year"`
 		Term   string `yaml:"term"`
@@ -43,9 +45,10 @@ func InitPerformanceFallBackCourseService(ccnu ccnuv1.CCNUServiceClient, repo re
 	if err != nil {
 		panic(err)
 	}
-	courseService := service.NewCourseService(ccnu, repo, cfg.Year, cfg.Term)
+	courseService := service.NewCourseService(ccnu, repo, subRepo, cfg.Year, cfg.Term)
 	fc := service.NewFallbackCourseService(courseService, repo, producer, l)
 	courseTTL := time.Duration(cfg.Course.TTL) * time.Hour * 24
+	//courseTTL := time.Second
 	pfc := service.NewPerformanceCourseService(fc, repo, cfg.Year,
 		cfg.Term, cfg.Course.Selecting, courseTTL, l)
 	return pfc

@@ -43,10 +43,10 @@ func (c *CourseListEventConsumer) Start() error {
 func (c *CourseListEventConsumer) BatchConsume(msgs []*sarama.ConsumerMessage, events []CourseFromXkEvent) error {
 	courseSubscriptions := slice.Map(events, func(c int, src CourseFromXkEvent) domain.CourseSubscription {
 		return domain.CourseSubscription{
-			CourseId: src.CourseId,
-			Uid:      src.Uid,
-			Year:     src.Year,
-			Term:     src.Term,
+			Course: domain.Course{Id: src.CourseId},
+			Uid:    src.Uid,
+			Year:   src.Year,
+			Term:   src.Term,
 		}
 	})
 	// 批量存储到数据库

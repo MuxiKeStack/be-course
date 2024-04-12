@@ -24,8 +24,8 @@ func InitApp() *App {
 		ioc.InitPerformanceFallBackCourseService,
 		ioc.InitProducer,
 		ioc.InitKafka,
-		repository.NewCachedCourseRepository, repository.NewCourseSubscriptionRepository,
-		cache.NewRedisCourseCache,
+		repository.NewCachedCourseRepository, repository.NewCachedCourseSubscriptionRepository,
+		cache.NewRedisCourseCache, cache.NewRedisCourseSubscriptionCache,
 		dao.NewGORMCourseDAO, dao.NewGORMCourseSubscriptionDAO,
 		ioc.InitCCNUClient,
 		// 第三方组件

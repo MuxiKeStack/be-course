@@ -22,12 +22,12 @@ func (s *CourseServiceServer) Register(server grpc.ServiceRegistrar) {
 	coursev1.RegisterCourseServiceServer(server, s)
 }
 
-func (s *CourseServiceServer) List(ctx context.Context, request *coursev1.ListRequest) (*coursev1.ListResponse, error) {
-	cs, err := s.svc.List(ctx, request.GetStudentId(), request.GetPassword(),
+func (s *CourseServiceServer) SubscriptionList(ctx context.Context, request *coursev1.SubscriptionListRequest) (*coursev1.SubscriptionListResponse, error) {
+	css, err := s.svc.SubscriptionList(ctx, request.GetStudentId(), request.GetPassword(),
 		request.GetYear(), request.GetTerm(), request.GetUid()) // 传入了uid 说明这里肯定是调用带有容错或性能提升的List
-	return &coursev1.ListResponse{
-		Courses: slice.Map(cs, func(idx int, src domain.Course) *coursev1.Course {
-			return convertToCourseV(src)
+	return &coursev1.SubscriptionListResponse{
+		CourseSubscriptions: slice.Map(css, func(idx int, src domain.CourseSubscription) *coursev1.CourseSubscription {
+			return convertToCourseSubscriptionV(src)
 		}),
 	}, err
 }
@@ -39,24 +39,16 @@ func (s *CourseServiceServer) GetDetailById(ctx context.Context, request *course
 	}, err
 }
 
-func (s *CourseServiceServer) GetGradesById(ctx context.Context, request *coursev1.GetGradesByIdRequest) (*coursev1.GetGradesByIdResponse, error) {
-	grades, err := s.svc.GetGradesById(ctx, request.GetCourseId())
-	return &coursev1.GetGradesByIdResponse{Grades: slice.Map(grades, func(idx int, src domain.Grade) *coursev1.Grade {
-		return convertToGradeV(src)
-	})}, err
-}
-
-func convertToGradeV(grade domain.Grade) *coursev1.Grade {
-	return &coursev1.Grade{
-		Regular: grade.Regular,
-		Final:   grade.Final,
-		Total:   grade.Total,
-		Year:    grade.Year,
-		Term:    grade.Term,
-	}
+func (s *CourseServiceServer) GetSubscriberUidsById(ctx context.Context,
+	request *coursev1.GetSubscriberUidsByIdRequest) (*coursev1.GetSubscriberUidsByIdResponse, error) {
+	uids, err := s.svc.GetSubscriberUidsByCourseId(ctx, request.GetCourseId(), request.GetCurUid(), request.GetLimit())
+	return &coursev1.GetSubscriberUidsByIdResponse{
+		InviteeUids: uids,
+	}, err
 }
 
 func convertToCourseV(c domain.Course) *coursev1.Course {
+	// 这里没有转换 year , term ，因为 year ， term 只在针对某个人查询的时候才有
 	return &coursev1.Course{
 		Id:         c.Id,
 		CourseCode: c.CourseCode,
@@ -65,5 +57,39 @@ func convertToCourseV(c domain.Course) *coursev1.Course {
 		School:     c.School,
 		Property:   c.Property.String(), // 发到外面就换成string，易于上游理解，内部是为了性能
 		Credit:     c.Credit,
+		Grades: slice.Map(c.Grades, func(idx int, src domain.Grade) *coursev1.Grade {
+			return &coursev1.Grade{
+				Regular: src.Regular,
+				Final:   src.Final,
+				Total:   src.Total,
+				Year:    src.Year,
+				Term:    src.Term,
+			}
+		}),
+	}
+}
+
+func convertToCourseSubscriptionV(cs domain.CourseSubscription) *coursev1.CourseSubscription {
+	return &coursev1.CourseSubscription{
+		Course: &coursev1.Course{
+			Id:         cs.Course.Id,
+			CourseCode: cs.Course.CourseCode,
+			Name:       cs.Course.Name,
+			Teacher:    cs.Course.Teacher,
+			School:     cs.Term,
+			Property:   cs.Course.Property.String(),
+			Credit:     cs.Course.Credit,
+			Grades: slice.Map(cs.Course.Grades, func(idx int, src domain.Grade) *coursev1.Grade {
+				return &coursev1.Grade{
+					Regular: src.Regular,
+					Final:   src.Final,
+					Total:   src.Total,
+					Year:    src.Year,
+					Term:    src.Term,
+				}
+			}),
+		},
+		Year: cs.Year,
+		Term: cs.Term,
 	}
 }
