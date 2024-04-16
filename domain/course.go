@@ -1,5 +1,7 @@
 package domain
 
+import coursev1 "github.com/MuxiKeStack/be-api/gen/proto/course/v1"
+
 type CourseSubscription struct {
 	Course Course
 	Uid    int64
@@ -13,7 +15,7 @@ type Course struct {
 	Name       string
 	Teacher    string
 	School     string
-	Property   CourseProperty
+	Property   coursev1.CourseProperty
 	Credit     float32
 	Grades     []Grade
 }
@@ -26,52 +28,20 @@ type Grade struct {
 	Term    string
 }
 
-type CourseProperty uint8
-
-const (
-	CoursePropertyUnknown         CourseProperty = iota
-	CoursePropertyGeneralCore                    // 通识核心课
-	CoursePropertyGeneralElective                // 通识选修课
-	CoursePropertyGeneralRequired                // 通识必修课
-	CoursePropertyMajorCore                      // 专业主干课程
-	CoursePropertyMajorElective                  // 个性发展课程
-)
-
-func (p CourseProperty) Uint8() uint8 {
-	return uint8(p)
-}
-
-func (p CourseProperty) String() string {
-	switch p {
-	case CoursePropertyGeneralCore:
-		return "通识核心课"
-	case CoursePropertyGeneralElective:
-		return "通识选修课"
-	case CoursePropertyGeneralRequired:
-		return "通识必修课"
-	case CoursePropertyMajorCore:
-		return "专业主干课程"
-	case CoursePropertyMajorElective:
-		return "个性发展课程"
-	default:
-		return "Unknown Course Property"
-	}
-}
-
-// CoursePropertyFromStr 将外部调用(ccnu调用)获取到的字符串课程转换为uint8
-func CoursePropertyFromStr(pStr string) CourseProperty {
+// CoursePropertyFromStr 将外部调用(ccnu调用)获取到的字符串课程转换为enum CourseProperty
+func CoursePropertyFromStr(pStr string) coursev1.CourseProperty {
 	switch pStr {
 	case "通识核心课":
-		return CoursePropertyGeneralCore
+		return coursev1.CourseProperty_CoursePropertyGeneralCore
 	case "通识选修课":
-		return CoursePropertyGeneralElective
+		return coursev1.CourseProperty_CoursePropertyGeneralElective
 	case "通识必修课":
-		return CoursePropertyGeneralRequired
+		return coursev1.CourseProperty_CoursePropertyGeneralRequired
 	case "专业主干课程":
-		return CoursePropertyMajorCore
+		return coursev1.CourseProperty_CoursePropertyMajorCore
 	case "个性发展课程":
-		return CoursePropertyMajorElective
+		return coursev1.CourseProperty_CoursePropertyMajorElective
 	default:
-		return CoursePropertyUnknown
+		return coursev1.CourseProperty_CoursePropertyUnknown
 	}
 }

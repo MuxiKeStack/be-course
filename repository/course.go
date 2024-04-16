@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	coursev1 "github.com/MuxiKeStack/be-api/gen/proto/course/v1"
 	"github.com/MuxiKeStack/be-course/domain"
 	"github.com/MuxiKeStack/be-course/repository/cache"
 	"github.com/MuxiKeStack/be-course/repository/dao"
@@ -74,7 +75,7 @@ func (repo *CachedCourseRepository) courseToEntity(course domain.Course) dao.Cou
 		Name:       course.Name,
 		Teacher:    course.Teacher,
 		School:     course.School,
-		Property:   course.Property.Uint8(),
+		Property:   int32(course.Property),
 		Credit:     course.Credit,
 	}
 }
@@ -86,7 +87,7 @@ func (repo *CachedCourseRepository) courseToDomain(c dao.Course) domain.Course {
 		Name:       c.Name,
 		Teacher:    c.Teacher,
 		School:     c.School,
-		Property:   domain.CourseProperty(c.Property),
+		Property:   coursev1.CourseProperty(c.Property),
 		Credit:     c.Credit,
 	}
 }
