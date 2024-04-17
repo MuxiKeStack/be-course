@@ -45,10 +45,10 @@ func (dao *GORMCourseSubscriptionDAO) FindByUidYearTermAlive(ctx context.Context
 	query := dao.db.WithContext(ctx).
 		Where("uid = ? and utime > ?", uid, time.Now().Add(-TTL).UnixMilli())
 	if year != "" {
-		query.Where("year = ?", year)
+		query = query.Where("year = ?", year)
 	}
 	if term != "" {
-		query.Where("term = ?", term)
+		query = query.Where("term = ?", term)
 	}
 	var cs []CourseSubscription
 	err := query.Find(&cs).Error
