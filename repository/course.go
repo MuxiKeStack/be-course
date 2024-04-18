@@ -60,6 +60,9 @@ func (repo *CachedCourseRepository) FindById(ctx context.Context, id int64) (dom
 	// 1. 没有key
 	// 2. redis崩溃，这里预期没有缓存也撑得住，不采取降级来保护数据库
 	c, err := repo.dao.FindById(ctx, id)
+	if err != nil {
+		return domain.Course{}, err
+	}
 	grades, err := repo.dao.FindGradesById(ctx, id)
 	res = repo.courseToDomain(c)
 	res.Grades = slice.Map(grades, func(idx int, src dao.Grade) domain.Grade {
