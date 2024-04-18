@@ -14,6 +14,13 @@ type CourseServiceServer struct {
 	svc service.CourseService
 }
 
+func (s *CourseServiceServer) Subscribed(ctx context.Context, request *coursev1.SubscribedRequest) (*coursev1.SubscribedResponse, error) {
+	subscribed, err := s.svc.Subscribed(ctx, request.GetUid(), request.GetCourseId())
+	return &coursev1.SubscribedResponse{
+		Subscribed: subscribed,
+	}, err
+}
+
 func NewCourseServiceServer(svc service.CourseService) *CourseServiceServer {
 	return &CourseServiceServer{svc: svc}
 }

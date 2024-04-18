@@ -21,6 +21,7 @@ type CourseService interface {
 	// FindSubscriptionsByUidYearTermAlive TTL 为-1表示永不过期
 	FindSubscriptionsByUidYearTermAlive(ctx context.Context, uid int64, year string, term string,
 		TTL time.Duration) ([]domain.CourseSubscription, error)
+	Subscribed(ctx context.Context, uid int64, courseId int64) (bool, error)
 }
 
 type courseService struct {
@@ -29,6 +30,10 @@ type courseService struct {
 	subRepo     repository.CourseSubscriptionRepository
 	currentYear string
 	currentTerm string
+}
+
+func (s *courseService) Subscribed(ctx context.Context, uid int64, courseId int64) (bool, error) {
+	return s.subRepo.Subscribed(ctx, uid, courseId)
 }
 
 func NewCourseService(ccnu ccnuv1.CCNUServiceClient, repo repository.CourseRepository, subRepo repository.CourseSubscriptionRepository,

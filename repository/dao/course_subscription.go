@@ -12,10 +12,19 @@ type CourseSubscriptionDAO interface {
 	BatchInsertCourseSubscription(ctx context.Context, subscriptions []CourseSubscription) error
 	FindSubscriberUidsByCourseId(ctx context.Context, courseId int64, curUid int64, limit int64) ([]int64, error)
 	FindByUidYearTermAlive(ctx context.Context, uid int64, year string, term string, ttl time.Duration) ([]CourseSubscription, error)
+	GetSubscriptionInfo(ctx context.Context, uid int64, courseId int64) (CourseSubscription, error)
 }
 
 type GORMCourseSubscriptionDAO struct {
 	db *gorm.DB
+}
+
+func (dao *GORMCourseSubscriptionDAO) GetSubscriptionInfo(ctx context.Context, uid int64, courseId int64) (CourseSubscription, error) {
+	var cs CourseSubscription
+	err := dao.db.WithContext(ctx).
+		Where("uid = ? and course_id = ?", uid, courseId).
+		First(&cs).Error
+	return cs, err
 }
 
 func NewGORMCourseSubscriptionDAO(db *gorm.DB) CourseSubscriptionDAO {

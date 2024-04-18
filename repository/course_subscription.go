@@ -15,12 +15,25 @@ type CourseSubscriptionRepository interface {
 	FindSubscriberUidsByCourseId(ctx context.Context, courseId int64, curUid int64, limit int64) ([]int64, error)
 	FindByUidYearTermAlive(ctx context.Context, uid int64, year string, term string,
 		ttl time.Duration) ([]domain.CourseSubscription, error)
+	Subscribed(ctx context.Context, uid int64, courseId int64) (bool, error)
 }
 
 type CachedCourseSubscriptionRepository struct {
 	dao   dao.CourseSubscriptionDAO
 	cache cache.CourseSubscriptionCache
 	l     logger.Logger
+}
+
+func (repo *CachedCourseSubscriptionRepository) Subscribed(ctx context.Context, uid int64, courseId int64) (bool, error) {
+	_, err := repo.dao.GetSubscriptionInfo(ctx, uid, courseId)
+	switch {
+	case err == nil:
+		return true, nil
+	case err == dao.ErrRecordNorFound:
+		return false, nil
+	default:
+		return false, err
+	}
 }
 
 func NewCachedCourseSubscriptionRepository(dao dao.CourseSubscriptionDAO, cache cache.CourseSubscriptionCache,
