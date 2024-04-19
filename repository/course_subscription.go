@@ -50,7 +50,7 @@ func (repo *CachedCourseSubscriptionRepository) FindByUidYearTermAlive(ctx conte
 }
 
 func (repo *CachedCourseSubscriptionRepository) BatchCreateCourseSubscription(ctx context.Context, cs []domain.CourseSubscription) error {
-	return repo.dao.BatchInsertCourseSubscription(ctx, slice.Map(cs, func(idx int, src domain.CourseSubscription) dao.CourseSubscription {
+	err := repo.dao.BatchInsertCourseSubscription(ctx, slice.Map(cs, func(idx int, src domain.CourseSubscription) dao.CourseSubscription {
 		return dao.CourseSubscription{
 			Uid:      src.Uid,
 			Year:     src.Year,
@@ -58,6 +58,20 @@ func (repo *CachedCourseSubscriptionRepository) BatchCreateCourseSubscription(ct
 			CourseId: src.Course.Id,
 		}
 	}))
+	if err != nil {
+		return err
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		for _, c := range cs {
+			er := repo.cache.DelFirstPageUids(ctx, c.Course.Id)
+			if er != nil {
+				repo.l.Error("删除缓存第一要推荐者缓存失败", logger.Error(err), logger.Int64("CourseId", c.Course.Id))
+			}
+		}
+	}()
+	return nil
 }
 
 func (repo *CachedCourseSubscriptionRepository) FindSubscriberUidsByCourseId(ctx context.Context, courseId int64, curUid int64, limit int64) ([]int64, error) {

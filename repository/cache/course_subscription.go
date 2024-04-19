@@ -13,6 +13,7 @@ var ErrKeyNotExist = redis.Nil
 type CourseSubscriptionCache interface {
 	GetFirstPageUids(ctx context.Context, courseId int64) ([]int64, error)
 	SetFirstPageUids(ctx context.Context, courseId int64, uids []int64) error
+	DelFirstPageUids(ctx context.Context, courseId int64) error
 }
 
 type RedisCourseSubscriptionCache struct {
@@ -40,7 +41,12 @@ func (cache *RedisCourseSubscriptionCache) SetFirstPageUids(ctx context.Context,
 	if err != nil {
 		return err
 	}
-	return cache.cmd.Set(ctx, key, val, time.Minute*1).Err() // 半天过期
+	return cache.cmd.Set(ctx, key, val, time.Minute*30).Err() // 半天过期
+}
+
+func (cache *RedisCourseSubscriptionCache) DelFirstPageUids(ctx context.Context, courseId int64) error {
+	key := cache.firstPageUidsKey(courseId)
+	return cache.cmd.Del(ctx, key).Err()
 }
 
 func (cache *RedisCourseSubscriptionCache) firstPageUidsKey(courseId int64) string {

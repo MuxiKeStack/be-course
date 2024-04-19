@@ -52,7 +52,7 @@ func (repo *CachedCourseRepository) Create(ctx context.Context, course domain.Co
 }
 
 func (repo *CachedCourseRepository) FindById(ctx context.Context, id int64) (domain.Course, error) {
-	// 先查缓存，新发的课评会预热相关课程
+	// TODO 先查缓存，新发的课评会预热相关课程
 	res, err := repo.cache.Get(ctx, id)
 	if err == nil {
 		return res, nil
