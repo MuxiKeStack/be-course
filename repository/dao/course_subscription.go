@@ -52,13 +52,15 @@ func (dao *GORMCourseSubscriptionDAO) BatchInsertCourseSubscription(ctx context.
 func (dao *GORMCourseSubscriptionDAO) FindByUidYearTermAlive(ctx context.Context, uid int64, year string,
 	term string, TTL time.Duration) ([]CourseSubscription, error) {
 	query := dao.db.WithContext(ctx).
-		Where("uid = ? and utime > ?", uid, time.Now().Add(-TTL).UnixMilli())
+		Where("uid = ?", uid)
 	if year != "" {
 		query = query.Where("year = ?", year)
 	}
 	if term != "" {
 		query = query.Where("term = ?", term)
 	}
+	// 这个就不加入索引了，上面已经过滤到很少的数据了
+	query = query.Where("utime > ?", time.Now().Add(-TTL).UnixMilli())
 	var cs []CourseSubscription
 	err := query.Find(&cs).Error
 	return cs, err
@@ -73,20 +75,21 @@ func (dao *GORMCourseSubscriptionDAO) FindSubscriberUidsByCourseId(ctx context.C
 	err := dao.db.WithContext(ctx).
 		Model(&CourseSubscription{}).
 		Select("uid").
-		Where("course_id = ? and uid > ?", courseId, curUid).
+		Where("uid > ? and course_id = ?", curUid, courseId).
 		Order("uid asc").
 		Limit(int(limit)).Find(&uids).Error
 	return uids, err
 }
 
+// TODO 设计索引 <courseId,uid>
 type CourseSubscription struct {
 	Id int64 `gorm:"primaryKey,autoIncrement"`
 	// 下面四个是高频查询字段，需要设置索引加速查询，作为前缀
-	Uid  int64  `gorm:"uniqueIndex:uid_year_term_courseId"`
+	Uid  int64  `gorm:"uniqueIndex:uid_year_term_courseId; index:uid_courseId"`
 	Year string `gorm:"uniqueIndex:uid_year_term_courseId; type:char(4)"`
 	Term string `gorm:"uniqueIndex:uid_year_term_courseId; type:char(1)"`
 	// course_id 和其他字段组合的结果需要时唯一的，所以要放在尾部
-	CourseId int64 `gorm:"uniqueIndex:uid_year_term_courseId"`
+	CourseId int64 `gorm:"uniqueIndex:uid_year_term_courseId; index:uid_courseId"`
 	Utime    int64 // 这里历史查询条件，但是特地为utime建立索引感觉没太大必要，因为前面的条件已经把大多数行筛掉了
 	Ctime    int64
 }
