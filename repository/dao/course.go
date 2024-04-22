@@ -40,18 +40,17 @@ func (dao *GORMCourseDAO) Upsert(ctx context.Context, course Course) error {
 	now := time.Now().UnixMilli()
 	course.Utime = now
 	course.Ctime = now
-	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		return tx.Clauses(
-			clause.OnConflict{DoUpdates: clause.Assignments(map[string]any{
-				"property": course.Property,
-				"utime":    now,
-			})}).Create(&course).Error
-	})
+	return dao.db.WithContext(ctx).Clauses(
+		clause.OnConflict{DoUpdates: clause.Assignments(map[string]any{
+			"property": course.Property,
+			"utime":    now,
+		})}).Create(&course).Error
 }
 
 func (dao *GORMCourseDAO) FindIdByCourse(ctx context.Context, course Course) (int64, error) {
 	var id int64
-	err := dao.db.WithContext(ctx).Model(&Course{}).
+	err := dao.db.WithContext(ctx).
+		Model(&Course{}).
 		Select("id").
 		Where("course_code = ? and name = ? and teacher = ?", course.CourseCode, course.Name, course.Teacher).
 		First(&id).Error
@@ -61,7 +60,8 @@ func (dao *GORMCourseDAO) FindIdByCourse(ctx context.Context, course Course) (in
 func (dao *GORMCourseDAO) FindIdByCourseWithoutUnknownProperty(ctx context.Context, course Course) (int64, error) {
 	var id int64
 	const CoursePropertyUnknown = 0
-	err := dao.db.WithContext(ctx).Model(&Course{}).
+	err := dao.db.WithContext(ctx).
+		Model(&Course{}).
 		Select("id").
 		Where("course_code = ? and name = ? and teacher = ? and property != ?",
 			course.CourseCode, course.Name, course.Teacher, CoursePropertyUnknown).
