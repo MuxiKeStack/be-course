@@ -64,15 +64,6 @@ func convertToCourseV(c domain.Course) *coursev1.Course {
 		School:     c.School,
 		Property:   c.Property, // 发到外面就换成string，易于上游理解，内部是为了性能
 		Credit:     c.Credit,
-		Grades: slice.Map(c.Grades, func(idx int, src domain.Grade) *coursev1.Grade {
-			return &coursev1.Grade{
-				Regular: src.Regular,
-				Final:   src.Final,
-				Total:   src.Total,
-				Year:    src.Year,
-				Term:    src.Term,
-			}
-		}),
 	}
 }
 
@@ -86,15 +77,6 @@ func convertToCourseSubscriptionV(cs domain.CourseSubscription) *coursev1.Course
 			School:     cs.Term,
 			Property:   cs.Course.Property,
 			Credit:     cs.Course.Credit,
-			Grades: slice.Map(cs.Course.Grades, func(idx int, src domain.Grade) *coursev1.Grade {
-				return &coursev1.Grade{
-					Regular: src.Regular,
-					Final:   src.Final,
-					Total:   src.Total,
-					Year:    src.Year,
-					Term:    src.Term,
-				}
-			}),
 		},
 		Year: cs.Year,
 		Term: cs.Term,

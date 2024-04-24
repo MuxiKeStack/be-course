@@ -6,7 +6,6 @@ import (
 	"github.com/MuxiKeStack/be-course/domain"
 	"github.com/MuxiKeStack/be-course/repository/cache"
 	"github.com/MuxiKeStack/be-course/repository/dao"
-	"github.com/ecodeclub/ekit/slice"
 )
 
 var (
@@ -32,7 +31,7 @@ func NewCachedCourseRepository(dao dao.CourseDAO, cache cache.CourseCache) Cours
 }
 
 func (repo *CachedCourseRepository) Upsert(ctx context.Context, course domain.Course) error {
-	return repo.dao.Upsert(ctx, repo.courseToEntity(course))
+	return repo.dao.Upsert(ctx, repo.ToEntity(course))
 }
 
 func (repo *CachedCourseRepository) FindIdByCourse(ctx context.Context, course domain.Course) (int64, error) {
@@ -40,15 +39,15 @@ func (repo *CachedCourseRepository) FindIdByCourse(ctx context.Context, course d
 	// 对于一门课，在校生里面最多几百人，比如一门通核8、90人，教了三届，也就不到300人
 	// 而且大多数还是人更少的专业课，假设用户量能有在校生三分之一，缓存半小时的话，半小时能有几个人命中这个缓存
 	// 缓存了收益很低，更何况，查询条件完全命中索引，所以不缓存了
-	return repo.dao.FindIdByCourse(ctx, repo.courseToEntity(course))
+	return repo.dao.FindIdByCourse(ctx, repo.ToEntity(course))
 }
 
 func (repo *CachedCourseRepository) FindIdByCourseWithoutUnknownProperty(ctx context.Context, course domain.Course) (int64, error) {
-	return repo.dao.FindIdByCourseWithoutUnknownProperty(ctx, repo.courseToEntity(course))
+	return repo.dao.FindIdByCourseWithoutUnknownProperty(ctx, repo.ToEntity(course))
 }
 
 func (repo *CachedCourseRepository) Create(ctx context.Context, course domain.Course) error {
-	return repo.dao.Insert(ctx, repo.courseToEntity(course))
+	return repo.dao.Insert(ctx, repo.ToEntity(course))
 }
 
 func (repo *CachedCourseRepository) FindById(ctx context.Context, id int64) (domain.Course, error) {
@@ -63,15 +62,10 @@ func (repo *CachedCourseRepository) FindById(ctx context.Context, id int64) (dom
 	if err != nil {
 		return domain.Course{}, err
 	}
-	grades, err := repo.dao.FindGradesById(ctx, id)
-	res = repo.courseToDomain(c)
-	res.Grades = slice.Map(grades, func(idx int, src dao.Grade) domain.Grade {
-		return repo.gradeToDomain(src)
-	})
-	return res, err
+	return repo.ToDomain(c), err
 }
 
-func (repo *CachedCourseRepository) courseToEntity(course domain.Course) dao.Course {
+func (repo *CachedCourseRepository) ToEntity(course domain.Course) dao.Course {
 	return dao.Course{
 		Id:         course.Id,
 		CourseCode: course.CourseCode,
@@ -83,7 +77,7 @@ func (repo *CachedCourseRepository) courseToEntity(course domain.Course) dao.Cou
 	}
 }
 
-func (repo *CachedCourseRepository) courseToDomain(c dao.Course) domain.Course {
+func (repo *CachedCourseRepository) ToDomain(c dao.Course) domain.Course {
 	return domain.Course{
 		Id:         c.Id,
 		CourseCode: c.CourseCode,
@@ -92,15 +86,5 @@ func (repo *CachedCourseRepository) courseToDomain(c dao.Course) domain.Course {
 		School:     c.School,
 		Property:   coursev1.CourseProperty(c.Property),
 		Credit:     c.Credit,
-	}
-}
-
-func (repo *CachedCourseRepository) gradeToDomain(g dao.Grade) domain.Grade {
-	return domain.Grade{
-		Regular: g.Regular,
-		Final:   g.Final,
-		Total:   g.Total,
-		Year:    g.Year,
-		Term:    g.Term,
 	}
 }

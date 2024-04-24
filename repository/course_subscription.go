@@ -45,7 +45,7 @@ func (repo *CachedCourseSubscriptionRepository) FindByUidYearTermAlive(ctx conte
 	ttl time.Duration) ([]domain.CourseSubscription, error) {
 	css, err := repo.dao.FindByUidYearTermAlive(ctx, uid, year, term, ttl)
 	return slice.Map(css, func(idx int, src dao.CourseSubscription) domain.CourseSubscription {
-		return repo.toSubscriptionDomain(src)
+		return repo.toDomain(src)
 	}), err
 }
 
@@ -112,7 +112,7 @@ func (repo *CachedCourseSubscriptionRepository) FindSubscriberUidsByCourseId(ctx
 	return res, nil
 }
 
-func (repo *CachedCourseSubscriptionRepository) toSubscriptionDomain(cs dao.CourseSubscription) domain.CourseSubscription {
+func (repo *CachedCourseSubscriptionRepository) toDomain(cs dao.CourseSubscription) domain.CourseSubscription {
 	return domain.CourseSubscription{
 		Course: domain.Course{
 			Id: cs.CourseId,

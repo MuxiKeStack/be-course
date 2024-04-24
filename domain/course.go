@@ -17,15 +17,6 @@ type Course struct {
 	School     string
 	Property   coursev1.CourseProperty
 	Credit     float32
-	Grades     []Grade
-}
-
-type Grade struct {
-	Regular float32
-	Final   float32
-	Total   float32
-	Year    string
-	Term    string
 }
 
 // CoursePropertyFromStr 将外部调用(ccnu调用)获取到的字符串课程转换为enum CourseProperty

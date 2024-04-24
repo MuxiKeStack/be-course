@@ -15,7 +15,6 @@ var (
 )
 
 type CourseDAO interface {
-	FindGradesById(ctx context.Context, id int64) ([]Grade, error)
 	FindById(ctx context.Context, id int64) (Course, error)
 	FindByIds(ctx context.Context, cids []int64) ([]Course, error)
 	FindIdByCourse(ctx context.Context, course Course) (int64, error)
@@ -84,14 +83,6 @@ func (dao *GORMCourseDAO) FindByIds(ctx context.Context, cids []int64) ([]Course
 	return courses, err
 }
 
-func (dao *GORMCourseDAO) FindGradesById(ctx context.Context, id int64) ([]Grade, error) {
-	var grades []Grade
-	err := dao.db.WithContext(ctx).
-		Where("course_id = ?", id).
-		Find(&grades).Error
-	return grades, err
-}
-
 func (dao *GORMCourseDAO) FindById(ctx context.Context, id int64) (Course, error) {
 	var c Course
 	err := dao.db.WithContext(ctx).
@@ -128,17 +119,4 @@ type Course struct {
 	Credit     float32
 	Ctime      int64
 	Utime      int64
-}
-
-type Grade struct {
-	Id       int64 `gorm:"primaryKey,autoIncrement"`
-	CourseId int64 `gorm:"uniqueIndex:cid_uid;"` // 主键id
-	Uid      int64 `gorm:"uniqueIndex:cid_uid"`
-	Regular  float32
-	Final    float32
-	Total    float32
-	Year     string
-	Term     string
-	Utime    int64
-	Ctime    int64
 }
