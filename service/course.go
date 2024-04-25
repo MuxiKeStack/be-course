@@ -111,6 +111,9 @@ func (s *courseService) GetDetailById(ctx context.Context, id int64) (domain.Cou
 }
 
 func (s *courseService) FindIdOrUpsertByCourse(ctx context.Context, course domain.Course) (int64, error) {
+	// 这个语义逻辑保持在DAO的单个事务里面性能在初期其实更好，但是代码结构没那么好看，
+	// 而且这里只是upsert是有限次数的，只会执行ccnu的总课程数次，很少了，后期数据全了，
+	// 完全没有性能区别，没必要到一个事务里，初期的一点性能，没必要
 	id, err := s.repo.FindIdByCourseWithoutUnknownProperty(ctx, course)
 	if err == nil {
 		return id, nil

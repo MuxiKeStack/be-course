@@ -16,7 +16,7 @@ type Course struct {
 	Teacher    string
 	School     string
 	Property   coursev1.CourseProperty
-	Credit     float32
+	Credit     float64
 }
 
 // CoursePropertyFromStr 将外部调用(ccnu调用)获取到的字符串课程转换为enum CourseProperty

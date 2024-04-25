@@ -54,9 +54,34 @@ func (s *CourseServiceServer) GetSubscriberUidsById(ctx context.Context,
 	}, err
 }
 
+func (s *CourseServiceServer) FindIdsOrUpsertByCourses(ctx context.Context, request *coursev1.FindIdOrUpsertByCoursesRequest) (*coursev1.FindIdOrUpsertByCoursesResponse, error) {
+	courses := request.GetCourses()
+	for _, course := range courses {
+		id, err := s.svc.FindIdOrUpsertByCourse(ctx, convertToCourseDomain(course))
+		if err != nil {
+			return &coursev1.FindIdOrUpsertByCoursesResponse{}, err
+		}
+		course.Id = id
+	}
+	return &coursev1.FindIdOrUpsertByCoursesResponse{
+		Courses: courses,
+	}, nil
+}
+
 func convertToCourseV(c domain.Course) *coursev1.Course {
-	// 这里没有转换 year , term ，因为 year ， term 只在针对某个人查询的时候才有
 	return &coursev1.Course{
+		Id:         c.Id,
+		CourseCode: c.CourseCode,
+		Name:       c.Name,
+		Teacher:    c.Teacher,
+		School:     c.School,
+		Property:   c.Property, // 发到外面就换成string，易于上游理解，内部是为了性能
+		Credit:     c.Credit,
+	}
+}
+
+func convertToCourseDomain(c *coursev1.Course) domain.Course {
+	return domain.Course{
 		Id:         c.Id,
 		CourseCode: c.CourseCode,
 		Name:       c.Name,

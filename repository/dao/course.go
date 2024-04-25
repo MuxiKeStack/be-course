@@ -116,7 +116,7 @@ type Course struct {
 	Teacher    string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:varchar(10)"`
 	Property   int32  `gorm:"index:idx_code_name_teacher_property"`
 	School     string
-	Credit     float32
+	Credit     float64
 	Ctime      int64
 	Utime      int64
 }
