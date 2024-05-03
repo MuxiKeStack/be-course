@@ -111,9 +111,10 @@ func (dao *GORMCourseDAO) BatchUpsert(ctx context.Context, courses []Course) err
 type Course struct {
 	Id int64 `gorm:"primaryKey,autoIncrement"`
 	// 这里是否有必要为property建立一个包含四个字段的联合索引
-	CourseCode string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:char(8)"`
-	Name       string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:varchar(30)"`
-	Teacher    string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:varchar(10)"`
+	// 下面三个字段的长度需要修改，等数据相对稳定了再往短了改
+	CourseCode string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:char(30)"`
+	Name       string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:varchar(100)"`
+	Teacher    string `gorm:"uniqueIndex:courseCode_name_teacher; index:idx_code_name_teacher_property; type:varchar(100)"`
 	Property   int32  `gorm:"index:idx_code_name_teacher_property"`
 	School     string
 	Credit     float64
