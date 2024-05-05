@@ -71,14 +71,22 @@ func (s *courseService) SubscriptionList(ctx context.Context, studentId string, 
 		// 体育课比较特别，要特殊处理
 		isSport := strings.HasPrefix(src.GetName(), "大学体育")
 		if isSport {
-			class := strings.Split(src.GetClass(), " ")
-			if len(class) >= 2 {
-				for _, v := range class {
-					// 不包含数字的那部分，也就是课程的名称
-					if !stringsx.ContainsDigit(v) {
-						src.Name = fmt.Sprintf("%s：%s", src.GetName(), v)
+			if class := strings.Split(strings.Trim(src.GetClass(), " "), "："); len(class) >= 2 {
+				src.Name = fmt.Sprintf("%s：%s", src.GetName(), class[len(class)-1])
+			} else if class = strings.Split(strings.Trim(src.GetClass(), " "), " "); len(class) >= 2 {
+				var className string
+				if !stringsx.ContainsDigit(src.GetClass()) {
+					className = class[len(class)-1]
+				} else {
+					for _, v := range class {
+						// 不包含数字的那部分，也就是课程的名称，但也有可能是中文数字
+						if !stringsx.ContainsDigit(v) {
+							className = v
+							break
+						}
 					}
 				}
+				src.Name = fmt.Sprintf("%s：%s", src.GetName(), className)
 			}
 		}
 		return domain.CourseSubscription{
