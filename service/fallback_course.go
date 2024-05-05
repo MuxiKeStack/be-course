@@ -49,7 +49,9 @@ func (f *FallbackCourseService) SubscriptionList(ctx context.Context, studentId 
 	switch {
 	case err == nil:
 		// 查询的课程不是在选课时间段的课程，开kafka异步存入数据库，这样可以保证，在数据库subscribed的课程都是可以评价的选上的课程
-		if !f.selecting || year != f.currentYear || term != f.currentTerm {
+		isHistory := year < f.currentYear || year == f.currentYear && term < f.currentTerm
+		isStable := isHistory || !f.selecting // 是否在课程稳定时间段，也就是确定选上了没有
+		if isStable {
 			events := make([]event.CourseFromXkEvent, 0, len(courseSubscriptions))
 			for _, c := range courseSubscriptions {
 				events = append(events, event.CourseFromXkEvent{
