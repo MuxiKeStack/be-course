@@ -18,14 +18,25 @@ var (
 // FallbackCourseService 降级装饰层
 type FallbackCourseService struct {
 	CourseService
-	repo     repository.CourseRepository
-	producer event.Producer
-	l        logger.Logger
+	repo        repository.CourseRepository
+	producer    event.Producer
+	l           logger.Logger
+	currentYear string
+	currentTerm string
+	selecting   bool // 选课中，配置文件中手动配置
 }
 
 func NewFallbackCourseService(courseService CourseService, repo repository.CourseRepository,
-	producer event.Producer, l logger.Logger) CourseService {
-	return &FallbackCourseService{CourseService: courseService, repo: repo, producer: producer, l: l}
+	producer event.Producer, l logger.Logger, currentYear string, currentTerm string, selecting bool) CourseService {
+	return &FallbackCourseService{
+		CourseService: courseService,
+		repo:          repo,
+		producer:      producer,
+		l:             l,
+		currentYear:   currentYear,
+		currentTerm:   currentTerm,
+		selecting:     selecting,
+	}
 }
 
 func (f *FallbackCourseService) SubscriptionList(ctx context.Context, studentId string, password string, year string,
@@ -37,19 +48,21 @@ func (f *FallbackCourseService) SubscriptionList(ctx context.Context, studentId 
 	courseSubscriptions, err := f.CourseService.SubscriptionList(ctx, studentId, password, year, term)
 	switch {
 	case err == nil:
-		// 开kafka异步存入数据库
-		events := make([]event.CourseFromXkEvent, 0, len(courseSubscriptions))
-		for _, c := range courseSubscriptions {
-			events = append(events, event.CourseFromXkEvent{
-				CourseId: c.Course.Id,
-				Uid:      uid[0],
-				Year:     c.Year,
-				Term:     c.Term,
-			})
-		}
-		er := f.producer.BatchProduceCourseListEvent(ctx, events)
-		if er != nil {
-			f.l.Error("生产CourseListEvent失败", logger.Error(err), logger.String("studentId", studentId))
+		// 查询的课程不是在选课时间段的课程，开kafka异步存入数据库，这样可以保证，在数据库subscribed的课程都是可以评价的选上的课程
+		if !f.selecting || year != f.currentYear || term != f.currentTerm {
+			events := make([]event.CourseFromXkEvent, 0, len(courseSubscriptions))
+			for _, c := range courseSubscriptions {
+				events = append(events, event.CourseFromXkEvent{
+					CourseId: c.Course.Id,
+					Uid:      uid[0],
+					Year:     c.Year,
+					Term:     c.Term,
+				})
+			}
+			er := f.producer.BatchProduceCourseListEvent(ctx, events)
+			if er != nil {
+				f.l.Error("生产CourseListEvent失败", logger.Error(err), logger.String("studentId", studentId))
+			}
 		}
 	case ccnuv1.IsNetworkToXkError(err):
 		// 降级,从数据查旧的数据，没查到就直接返回

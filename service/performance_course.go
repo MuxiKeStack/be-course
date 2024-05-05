@@ -26,6 +26,7 @@ func NewPerformanceCourseService(courseService CourseService, repo repository.Co
 
 func (p *PerformanceCourseService) SubscriptionList(ctx context.Context, studentId string, password string, year string,
 	term string, uid ...int64) ([]domain.CourseSubscription, error) {
+	// TODO 这里应该使用责任链模式更加合适
 	// 这里为了提高性能，加一个装饰器， 如果在课程稳定时间段：历史学年期，非选课时间内，直接拦一下，看数据库有没较新的数据，有的话直接返回，不再去爬取了
 	if len(uid) == 0 {
 		return nil, ErrUidNotInput

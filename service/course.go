@@ -54,6 +54,7 @@ func (s *courseService) SubscriptionList(ctx context.Context, studentId string, 
 	if isHistory {
 		src = ccnuv1.Source_GradeApi
 	} else {
+		// 这个路径应该确保，拿到的是已经选上的课
 		src = ccnuv1.Source_OldXkApi
 	}
 	res, err := s.ccnu.CourseList(ctx, &ccnuv1.CourseListRequest{

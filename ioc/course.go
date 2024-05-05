@@ -26,7 +26,7 @@ func InitFallBackCourseService(ccnu ccnuv1.CCNUServiceClient, repo repository.Co
 		panic(err)
 	}
 	courseService := service.NewCourseService(ccnu, repo, subRepo, cfg.Year, cfg.Term)
-	fc := service.NewFallbackCourseService(courseService, repo, producer, l)
+	fc := service.NewFallbackCourseService(courseService, repo, producer, l, cfg.Year, cfg.Term, cfg.Course.Selecting)
 	return fc
 }
 
@@ -46,7 +46,7 @@ func InitPerformanceFallBackCourseService(ccnu ccnuv1.CCNUServiceClient, repo re
 		panic(err)
 	}
 	courseService := service.NewCourseService(ccnu, repo, subRepo, cfg.Year, cfg.Term)
-	fc := service.NewFallbackCourseService(courseService, repo, producer, l)
+	fc := service.NewFallbackCourseService(courseService, repo, producer, l, cfg.Year, cfg.Term, cfg.Course.Selecting)
 	courseTTL := time.Duration(cfg.Course.TTL) * time.Hour * 24
 	//courseTTL := time.Second
 	pfc := service.NewPerformanceCourseService(fc, repo, cfg.Year,
