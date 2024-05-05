@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
 	ccnuv1 "github.com/MuxiKeStack/be-api/gen/proto/ccnu/v1"
 	"github.com/MuxiKeStack/be-course/domain"
+	"github.com/MuxiKeStack/be-course/pkg/stringsx"
 	"github.com/MuxiKeStack/be-course/repository"
 	"github.com/ecodeclub/ekit/slice"
 	"golang.org/x/sync/errgroup"
+	"strings"
 	"time"
 )
 
@@ -41,6 +44,7 @@ func NewCourseService(ccnu ccnuv1.CCNUServiceClient, repo repository.CourseRepos
 	return &courseService{ccnu: ccnu, repo: repo, subRepo: subRepo, currentYear: currentYear, currentTerm: currentTerm}
 }
 
+// SubscriptionList 查询所有时查询历史的所有，并不包括当前的
 func (s *courseService) SubscriptionList(ctx context.Context, studentId string, password string, year string,
 	term string, uid ...int64) ([]domain.CourseSubscription, error) {
 	// 从课程接口，判断是否选课中，好像都无所谓，都返回就行了，但是后面发表课评的时候要判断是否选课中
@@ -63,14 +67,27 @@ func (s *courseService) SubscriptionList(ctx context.Context, studentId string, 
 		return nil, err
 	}
 	courseSubscriptions := slice.Map(res.Courses, func(idx int, src *ccnuv1.Course) domain.CourseSubscription {
+		// 体育课比较特别，要特殊处理
+		isSport := strings.HasPrefix(src.GetName(), "大学体育")
+		if isSport {
+			class := strings.Split(src.GetClass(), " ")
+			if len(class) >= 2 {
+				for _, v := range class {
+					// 不包含数字的那部分，也就是课程的名称
+					if !stringsx.ContainsDigit(v) {
+						src.Name = fmt.Sprintf("%s：%s", src.GetName(), v)
+					}
+				}
+			}
+		}
 		return domain.CourseSubscription{
 			Course: domain.Course{
-				CourseCode: src.CourseCode,
-				Name:       src.Name,
-				Teacher:    src.Teacher,
-				School:     src.School,
-				Property:   domain.CoursePropertyFromStr(src.Property),
-				Credit:     src.Credit,
+				CourseCode: src.GetCourseCode(),
+				Name:       src.GetName(),
+				Teacher:    src.GetTeacher(),
+				School:     src.GetSchool(),
+				Property:   domain.CoursePropertyFromStr(src.GetProperty()),
+				Credit:     src.GetCredit(),
 			},
 			//Uid: uid[0],    // 这个不一定需要因为调用方一定知道自己的uid
 			Year: src.Year,
